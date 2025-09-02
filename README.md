@@ -90,8 +90,8 @@ No manual configuration required – just add annotations and the framework hand
 
 ```bash
 # Clone the repository
-git clone https://github.com/diegcard-arep/arep-taller-3.git
-cd arep-taller-3
+git clone https://github.com/diegcard-arep/arep-taller-4.git
+cd arep-taller-4
 
 # Compile the project
 mvn clean compile
@@ -117,8 +117,8 @@ java -jar target/urlobject-1.0-SNAPSHOT.jar
 docker-compose up --build
 
 # Or build and run manually
-docker build -t arep-taller-3 .
-docker run -p 35000:35000 --name arep-taller-3 arep-taller-3
+docker build -t arep-taller-4 .
+docker run -p 35000:35000 --name arep-taller-4 arep-taller-4
 ```
 
 ### Accessing the Application
