@@ -10,9 +10,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +19,6 @@ import java.util.logging.Logger;
 import com.escuelaing.arep.config.ServerConfig;
 import com.escuelaing.arep.framework.RouteInfo;
 import com.escuelaing.arep.utils.ClassScanner;
-
 /**
  * HTTP Server secuencial con soporte de archivos estáticos y rutas anotadas
  * vía un mini IoC (@RestController + @GetMapping + @RequestParam).
@@ -30,7 +26,7 @@ import com.escuelaing.arep.utils.ClassScanner;
 public class HttpServer {
 
     private static boolean running = true;
-    private static String WEB_ROOT = System.getProperty("user.dir") + "/target/classes/" + ServerConfig.STATIC_FILES_DIR;
+    private static String WEB_ROOT = ServerConfig.STATIC_FILES_DIR;
     private static final Logger LOGGER = Logger.getLogger(HttpServer.class.getName());
 
     private static final Map<String, byte[]> fileCache = new HashMap<>();
@@ -110,11 +106,7 @@ public class HttpServer {
      * @param directory the path to the static files directory, either absolute or relative
      */
     public static void setStaticFilesDirectory(String directory) {
-        if (directory.startsWith("/")) {
-            WEB_ROOT = System.getProperty("user.dir") + "/target/classes" + directory;
-        } else {
-            WEB_ROOT = System.getProperty("user.dir") + "/" + directory;
-        }
+        WEB_ROOT = directory;
         LOGGER.log(Level.INFO, "Static files directory updated to: {0}", WEB_ROOT);
     }
 
@@ -168,7 +160,8 @@ public class HttpServer {
             try {
                 Map<String, String> queryParams = parseQueryParams(fullPath);
                 String body = routes.get(path).invoke(queryParams);
-                sendResponse(out, 200, "text/plain; charset=UTF-8", body.getBytes(StandardCharsets.UTF_8));
+                String ct = path.startsWith("/api/") ? "application/json; charset=UTF-8" : "text/plain; charset=UTF-8";
+                sendResponse(out, 200, ct, body.getBytes(StandardCharsets.UTF_8));
                 return;
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error invocando ruta {0}: {1}", new Object[]{path, e.getMessage()});
@@ -255,35 +248,30 @@ public class HttpServer {
      */
     private void serveFile(OutputStream out, String path) throws IOException {
         path = path.replace("..", "").replace("//", "/");
-        if (!path.startsWith("/")) {
-            path = "/" + path;
+        if (path.startsWith("/")) {
+            path = path.substring(1);
         }
-
-        Path filePath = Paths.get(WEB_ROOT + path);
-
-        if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
-            sendErrorResponse(out, 404, "File Not Found");
-            return;
-        }
-
-        try {
-            byte[] fileContent = fileCache.get(path);
-            if (fileContent == null) {
-                fileContent = Files.readAllBytes(filePath);
-                if (fileContent.length < 1024 * 1024) {
-                    fileCache.put(path, fileContent);
+        String resourcePath = WEB_ROOT + "/" + path;
+        byte[] fileContent = fileCache.get(resourcePath);
+        if (fileContent == null) {
+            try (var is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
+                if (is == null) {
+                    sendErrorResponse(out, 404, "File Not Found");
+                    return;
                 }
+                fileContent = is.readAllBytes();
+                if (fileContent.length < 1024 * 1024) {
+                    fileCache.put(resourcePath, fileContent);
+                }
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Error reading file: {0}", resourcePath);
+                sendErrorResponse(out, 500, "Internal Server Error");
+                return;
             }
-
-            String mimeType = getSimpleMimeType(filePath.getFileName().toString());
-            sendResponse(out, 200, mimeType, fileContent);
-
-            LOGGER.log(Level.INFO, "Served file: {0} ({1} bytes)", new Object[] { path, fileContent.length });
-
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "Error reading file: {0}", path);
-            sendErrorResponse(out, 500, "Internal Server Error");
         }
+        String mimeType = getSimpleMimeType(path);
+        sendResponse(out, 200, mimeType, fileContent);
+        LOGGER.log(Level.INFO, "Served file: {0} ({1} bytes)", new Object[] { resourcePath, fileContent.length });
     }
 
     /**
