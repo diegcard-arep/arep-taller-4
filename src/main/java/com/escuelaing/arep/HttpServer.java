@@ -30,8 +30,10 @@ public class HttpServer {
     private static final Logger LOGGER = Logger.getLogger(HttpServer.class.getName());
 
     private static final Map<String, byte[]> fileCache = new HashMap<>();
-    // Rutas descubiertas por reflexión
+    // Rutas descubiertas por reflexión para GET
     private static final Map<String, RouteInfo> routes = new HashMap<>();
+    // Rutas descubiertas por reflexión para POST
+    private static final Map<String, RouteInfo> postRoutes = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         if (args.length > 0) {
@@ -64,9 +66,15 @@ public class HttpServer {
             LOGGER.log(Level.INFO, "HTTP Server started on port {0}", ServerConfig.getPort());
             LOGGER.log(Level.INFO, "Serving files from: {0}", WEB_ROOT);
             if (!routes.isEmpty()) {
-                LOGGER.info("Rutas registradas por anotación:");
+                LOGGER.info("Rutas GET registradas por anotación:");
                 for (String p : routes.keySet()) {
-                    LOGGER.info("  GET " + p);
+                    LOGGER.log(Level.INFO, "  GET {0}", p);
+                }
+            }
+            if (!postRoutes.isEmpty()) {
+                LOGGER.info("Rutas POST registradas por anotación:");
+                for (String p : postRoutes.keySet()) {
+                    LOGGER.log(Level.INFO, "  POST {0}", p);
                 }
             }
             LOGGER.log(Level.INFO, "Open http://localhost:{0} en su navegador", ServerConfig.getPort());
@@ -155,11 +163,13 @@ public class HttpServer {
         String fullPath = requestParts[1];
         String path = fullPath.contains("?") ? fullPath.substring(0, fullPath.indexOf("?")) : fullPath;
 
-        // 1) Rutas anotadas (@GetMapping)
-        if ("GET".equals(method) && routes.containsKey(path)) {
+        // 1) Rutas anotadas (@GetMapping y @PostMapping)
+        if (("GET".equals(method) && routes.containsKey(path)) || 
+            ("POST".equals(method) && postRoutes.containsKey(path))) {
             try {
                 Map<String, String> queryParams = parseQueryParams(fullPath);
-                String body = routes.get(path).invoke(queryParams);
+                RouteInfo route = "GET".equals(method) ? routes.get(path) : postRoutes.get(path);
+                String body = route.invoke(queryParams);
                 String ct = path.startsWith("/api/") ? "application/json; charset=UTF-8" : "text/plain; charset=UTF-8";
                 sendResponse(out, 200, ct, body.getBytes(StandardCharsets.UTF_8));
                 return;
@@ -181,8 +191,9 @@ public class HttpServer {
     /**
      * Scans for REST controller classes within the specified package and registers their routes.
      * For each controller class found, it creates an instance and inspects its methods for the
-     * {@link com.escuelaing.arep.annotations.GetMapping} annotation. If present, the method's route
-     * path is extracted and mapped to a {@link RouteInfo} object containing the path, method, and instance.
+     * {@link com.escuelaing.arep.annotations.GetMapping} and {@link com.escuelaing.arep.annotations.PostMapping}
+     * annotations. If present, the method's route path is extracted and mapped to a {@link RouteInfo} object
+     * containing the path, method, and instance.
      * Any exceptions during controller instantiation or registration are logged as warnings.
      */
     private void loadControllers() {
@@ -191,9 +202,15 @@ public class HttpServer {
             try {
                 Object instance = controllerClass.getDeclaredConstructor().newInstance();
                 for (var method : controllerClass.getDeclaredMethods()) {
+                    // Registrar rutas GET
                     if (method.isAnnotationPresent(com.escuelaing.arep.annotations.GetMapping.class)) {
                         String routePath = method.getAnnotation(com.escuelaing.arep.annotations.GetMapping.class).value();
                         routes.put(routePath, new RouteInfo(routePath, method, instance));
+                    }
+                    // Registrar rutas POST
+                    if (method.isAnnotationPresent(com.escuelaing.arep.annotations.PostMapping.class)) {
+                        String routePath = method.getAnnotation(com.escuelaing.arep.annotations.PostMapping.class).value();
+                        postRoutes.put(routePath, new RouteInfo(routePath, method, instance));
                     }
                 }
             } catch (Exception e) {
