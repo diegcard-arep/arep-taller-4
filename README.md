@@ -181,6 +181,10 @@ Using Postman, we verify the endpoints.
 
 ![Ec2 Postman](img/ec2-postman.png)
 
+### Video de Prueba de funcionamiento
+
+https://youtu.be/TjGrRkTWKBM
+
 ## 🔧 Configuration
 
 ### Server Port Configuration
