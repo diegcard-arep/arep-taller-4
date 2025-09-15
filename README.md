@@ -15,7 +15,7 @@ A lightweight, sequential HTTP server built from scratch in Java 21, featuring a
 
 ### 🎯 Academic Purpose
 
-**Enterprise Architecture Exercise (AREP) – Workshop 3**  
+**Enterprise Architecture Exercise (AREP) – Workshop 4**  
 *Escuela Colombiana de Ingeniería Julio Garavito*
 
 This project explores fundamental concepts of web server implementation, reflection, dependency injection, and dynamic routing in Java, serving as a foundation for understanding distributed architectures and microservices.
@@ -695,7 +695,7 @@ We welcome contributions! Please see our contributing guidelines:
 **Diego Cardenas**
 - GitHub: [@diegcard](https://github.com/diegcard)
 - LinkedIn: [Diego Cardenas](https://linkedin.com/in/diegcard)
-- Email: diego.cardenas@escuelaing.edu.co
+- Email: diego.cardenas-b@mail.escuelaing.edu.co
 
 ## 📄 License
 
@@ -720,7 +720,7 @@ copies or substantial portions of the Software.
 ---
 
 <div align="center">
-  <p><strong>Enterprise Architectures (AREP) - Workshop 3</strong></p>
+  <p><strong>Enterprise Architectures (AREP) - Workshop 4</strong></p>
   <p><em>Escuela Colombiana de Ingeniería Julio Garavito</em></p>
-  <p>Academic Year 2024</p>
+  <p>Academic Year 2025</p>
 </div>
