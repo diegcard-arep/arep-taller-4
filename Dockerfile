@@ -1,20 +1,28 @@
-# Utiliza una imagen oficial de Maven con Java 21 para construir la app
+
+# ---- Build Stage ----
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
-RUN mvn -q clean package -DskipTests
+# Compila y genera el JAR sombreado, luego limpia caché de Maven
+RUN mvn -q clean package shade:shade -DskipTests && mvn dependency:purge-local-repository -DactTransitively=false -DreResolve=false
 
-# Utiliza una imagen ligera de Java 21 para ejecutar la app
-FROM eclipse-temurin:21-jdk-alpine
+# ---- Run Stage ----
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
+
+# Puerto configurable
+ARG PORT=35000
+ENV PORT=${PORT}
+EXPOSE ${PORT}
 
 # Copia el JAR compilado desde la etapa de construcción
 COPY --from=build /app/target/urlobject-1.0-SNAPSHOT.jar app.jar
 
-# Expone el puerto por defecto
-ENV PORT=35000
-EXPOSE 35000
+# Da permisos al usuario no root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/* \
+	&& adduser --disabled-password --gecos '' appuser && chown -R appuser:appuser /app
+USER appuser
 
 # Ejecuta la aplicación
-CMD ["sh", "-lc", "exec java -jar app.jar"]
+CMD ["java", "-jar", "app.jar"]

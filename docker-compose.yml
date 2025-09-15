@@ -1,7 +1,14 @@
-version: '3.8'
 services:
-  app:
+  webapp:
+    image: diegcard/arep-taller-4:tagname
     build: .
     ports:
       - "35000:35000"
-    container_name: arep-taller-3
+    environment:
+      - PORT=35000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:35000/count"]
+      interval: 30s
+      timeout: 10s
+      retries: 5

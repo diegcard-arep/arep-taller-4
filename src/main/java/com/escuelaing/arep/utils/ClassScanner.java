@@ -46,13 +46,42 @@ public class ClassScanner {
             Enumeration<URL> resources = classLoader.getResources(path);
             while (resources.hasMoreElements()) {
                 URL resource = resources.nextElement();
-                if ("file".equals(resource.getProtocol())) {
+                String protocol = resource.getProtocol();
+                if ("file".equals(protocol)) {
                     File directory = new File(decode(resource.getFile()));
                     if (directory.exists()) {
                         scanDirectory(directory, packageName, controllers);
                     }
+                } else if ("jar".equals(protocol)) {
+                    // Escaneo de clases dentro de un JAR
+                    String resPath = resource.getPath();
+                    // Formato esperado: file:/path/app.jar!/com/escuelaing/arep/controllers
+                    int sep = resPath.indexOf("!");
+                    String jarPath = resPath.substring(0, sep);
+                    if (jarPath.startsWith("file:")) {
+                        jarPath = jarPath.substring(5);
+                    }
+                    jarPath = decode(jarPath);
+                    try (java.util.jar.JarFile jarFile = new java.util.jar.JarFile(jarPath)) {
+                        String packagePath = packageName.replace('.', '/') + "/";
+                        java.util.Enumeration<java.util.jar.JarEntry> entries = jarFile.entries();
+                        while (entries.hasMoreElements()) {
+                            java.util.jar.JarEntry entry = entries.nextElement();
+                            String name = entry.getName();
+                            if (name.startsWith(packagePath) && name.endsWith(".class") && !name.contains("$")) {
+                                String className = name.replace('/', '.').substring(0, name.length() - 6);
+                                try {
+                                    Class<?> clazz = Class.forName(className);
+                                    if (clazz.isAnnotationPresent(RestController.class)) {
+                                        controllers.add(clazz);
+                                    }
+                                } catch (ClassNotFoundException e) {
+                                    LOGGER.log(Level.FINE, "Clase no encontrada durante el escaneo JAR: {0}", className);
+                                }
+                            }
+                        }
+                    }
                 }
-                // Nota: escaneo dentro de JARs no implementado por simplicidad
             }
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Error leyendo recursos para paquete {0}: {1}", new Object[]{packageName, e.getMessage()});

@@ -24,7 +24,7 @@ package com.escuelaing.arep.config;
  * @since 2.0
  */
 public class ServerConfig {
-    private static int PORT = 35000;
+    private static int PORT = initPort();
     public static final String STATIC_FILES_DIR = "static";
     
     /**
@@ -43,5 +43,16 @@ public class ServerConfig {
      */
     public static void setPort(int port) {
         PORT = port;
+    }
+
+    private static int initPort() {
+        String env = System.getenv("PORT");
+        if (env != null) {
+            try {
+                return Integer.parseInt(env);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return 35000;
     }
 }
