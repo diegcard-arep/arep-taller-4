@@ -118,7 +118,7 @@ docker-compose up --build
 
 # Or build and run manually
 docker build -t arep-taller-4 .
-docker run -p 35000:35000 --name arep-taller-4 arep-taller-4
+docker run -p 35000:35000 --name arep-taller-4 diegcard/arep-taller-4:latest
 ```
 
 ### Accessing the Application
@@ -130,6 +130,56 @@ http://localhost:35000
 
 > [!TIP]
 > Static files are served from `target/classes/static`. Ensure you compile the project before running so resources are available in the classpath.
+
+### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t arep-taller-4 .
+# Run Docker container
+docker run -p 35000:35000 --name arep-taller-4 diegcard/arep-taller-4:latest
+```
+
+Since the application is contained in a Docker container, it can be deployed on any platform that supports Docker, such as AWS, Google Cloud, Azure, Heroku, among others. This example will show how to deploy it on AWS EC2.
+
+Verify that we have the image on EC2.
+
+![EC2 Images](img/image-ec2.png)
+
+Then log in to the EC2 image.
+
+![EC2 Session](img/ec2-session.png)
+
+Create an EC2 instance on AWS. You must ensure that you install Docker when you create the instance:
+
+```bash
+sudo yum update -y
+sudo yum install docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+```
+
+Verify the security port configuration on EC2.
+
+![EC2 Ports](img/ec2-security-groups.png)
+
+Then run the Docker container:
+
+```bash
+docker run -p 35000:35000 --name arep-taller-4 diegcard/arep-taller-4:latest
+```
+
+![Ec2 Docker](img/ec2-docker.png)
+
+We use the public IP of the EC2 instance to access the application.
+
+Then we verify that the application is running.
+
+![Ec2 App](img/ec2-app.png)
+
+Using Postman, we verify the endpoints.
+
+![Ec2 Postman](img/ec2-postman.png)
 
 ## 🔧 Configuration
 
